@@ -44,7 +44,7 @@ id objc_object::rootRetain() {
 }
 ```
 
-而 `id objc_object::rootRetain(bool tryRetain, bool handleOverflow)` 方法是调用栈中最重要的方法，其原理就是将 `isa` 结构体中的 `extra_rc` 的值加一。
+而 `id objc_object::rootRetain(bool tryRetain, bool handleOverflow)` 方法是调用栈中最重要的方法，其原理就是将 `isa` 结构体中的 `extra_rc` （extra reference count）的值加一。
 
 `extra_rc` 就是用于保存自动引用计数的标志位，下面就是 `isa` 结构体中的结构：
 
@@ -57,6 +57,7 @@ id objc_object::rootRetain() {
 这是简化后的 `rootRetain` 方法的实现，其中只有处理一般情况的代码：
 
 ```objectivec
+//objc-object.h
 id objc_object::rootRetain(bool tryRetain, bool handleOverflow) {
     isa_t oldisa;
     isa_t newisa;
@@ -344,7 +345,7 @@ inline uintptr_t objc_object::rootRetainCount() {
 ```
 
  根据方法的实现，retainCount 有三部分组成：
- 
+
  + 1
  + `extra_rc` 中存储的值
  + `sidetable_getExtraRC_nolock` 返回的值

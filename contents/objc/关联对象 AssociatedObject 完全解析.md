@@ -248,6 +248,10 @@ AssociationsHashMap *AssociationsManager::_map = NULL;
 首先，`AssociationsHashMap` 用与保存从对象的 `disguised_ptr_t` 到 `ObjectAssociationMap` 的映射：
 
 ```objectivec
+#if TARGET_OS_WIN32
+    typedef hash_map<void *, ObjcAssociation> ObjectAssociationMap;
+    typedef hash_map<disguised_ptr_t, ObjectAssociationMap *> AssociationsHashMap;
+#else
 class AssociationsHashMap : public unordered_map<disguised_ptr_t, ObjectAssociationMap *, DisguisedPointerHash, DisguisedPointerEqual, AssociationsHashMapAllocator> {
 public:
     void *operator new(size_t n) { return ::malloc(n); }
@@ -320,14 +324,16 @@ void _object_set_associative_reference(id object, void *key, id value, uintptr_t
     {
         AssociationsManager manager;
         AssociationsHashMap &associations(manager.associations());
+      
+        //创建指向即将拥有关联属性的Class的指针，每个类的地址是唯一的。
         disguised_ptr_t disguised_object = DISGUISE(object);
 
-        AssociationsHashMap::iterator i = associations.find(disguised_object);
+        AssociationsHashMap::iterator i = associations.find(disguised_object);//找到类对应的所有关联属性hash表AssociationsHashMap
         if (i != associations.end()) {
-            ObjectAssociationMap *refs = i->second;
+            ObjectAssociationMap *refs = i->second;//hashmap中， i->one 即 key，i->second 即 value
             ObjectAssociationMap::iterator j = refs->find(key);
             if (j != refs->end()) {
-                old_association = j->second;
+                old_association = j->second;//找到关联key对应的关联对象
                 j->second = ObjcAssociation(policy, new_value);
             } else {
                 (*refs)[key] = ObjcAssociation(policy, new_value);
